@@ -90,5 +90,5 @@ app.post('/accesstoken', (req: Request, res: Response) => {
 app.use(errorHandler())
 
 app.listen(port, () => {
-    console.log(`Server is Fire at http://localhost:${port}`);
+    console.log(`Server auth server on http://localhost:${port}`);
 });

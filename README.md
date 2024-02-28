@@ -16,3 +16,21 @@ curl --location --request POST 'https://st-dev-6c18c3b0-c96b-11ee-813b-df2fdf122
     "jwksDomain": "http://localhost:8001"
 }'
 ```
+
+Command to make m1 query m2 (which should succeed):
+```
+curl --location --request POST 'http://localhost:8001/query' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "target": "m2"
+}'
+```
+
+Command to make m1 query m3 (which should fail cause the auth-server doesn't allow it):
+```
+curl --location --request POST 'http://localhost:8001/query' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "target": "m3"
+}'
+```
