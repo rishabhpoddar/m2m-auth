@@ -61,10 +61,29 @@ curl --location --request POST 'http://localhost:8001/query' \
 Here, we are querying `m1` on `http://localhost:8001` and setting the target to `m2`. If this is allowed by the auth-server, it will return a 200 status code, else it will return a 401.
 
 ## How it works
-TODO...
+Whenever microservice `mX` wants to query `mY`, `mX` will first get a JWT from the auth server by querying `http://localhost:8000/accesstoken POST` with an auth token and the JSON body `{"target": "mY"}`. If `mX` is allowed to communicate with `mY`, then the auth server will return a JWT, else it will return a 401. The returned JWT will have the following payload:
+- `aud`: `mY`
+- `iss`: `auth-server`
+- `sub`: `mX`
+When this is used to query `mY`, `mY` will verify the JWT using the following checks:
+- The signature of the JWT is valid and it's not expired
+- The `iss` is `auth-server`
+- The `aud` is `mY` (i.e. it's itself)
 
+It can then know that `mX` queried it by reading the `sub` claim of the JWT.
 
-Command to create a JWT for M1:
+Now, for `mX` to be able to query the auth server in the first place, it needs an access token. This is a special JWT that is very long lived (100 years) and is hard coded in `mX`. The claims of the JWT are:
+- `aud`: `auth-server`
+- `iss`: `auth-server`
+- `sub`: `mX`
+
+When used, the auth server will verify the JWT using the following checks:
+- The signature of the JWT is valid and it's not expired
+- The `iss` is `auth-server`
+- The `aud` is `auth-server` (i.e. it's itself)
+
+The auth server can then know that `mX` queried it by reading the `sub` claim of the JWT. In order to generate this special JWT, you can query the SuperTokens core with the following cURL command:
+
 ```bash
 curl --location --request POST 'https://st-dev-6c18c3b0-c96b-11ee-813b-df2fdf122adb.aws.supertokens.io/appid-m2m-auth/recipe/jwt' \
 --header 'api-key: 2o3EmNQGPQ3YaC6kbAcB33keTv' \
@@ -81,3 +100,5 @@ curl --location --request POST 'https://st-dev-6c18c3b0-c96b-11ee-813b-df2fdf122
     "jwksDomain": "http://localhost:8001"
 }'
 ```
+
+Notice that the lifetime of this token is 100 years, so for all practical purposes, this will never expire (unless you manually change the public keys in the SuperTokens core database).
