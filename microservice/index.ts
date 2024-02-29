@@ -31,7 +31,7 @@ function getAuthJwtForMicroservice(microservice: string) {
 
 const app: Application = express();
 
-const cachedJWT: { [key: string]: string } = {};
+const cachedJWT: { [key: string]: string | undefined } = {};
 
 async function queryMicroservice(target: string, res: Response) {
     try {
@@ -55,7 +55,13 @@ async function queryMicroservice(target: string, res: Response) {
         });
         res.send(response.data);
     } catch (e: any) {
-        res.status(500).send("Error: " + e.message);
+        if (e.response !== undefined && e.response.data !== undefined && e.response.data === "jwt expired") {
+            // this means the JWT used to query the microservice has expired. So we try again.
+            cachedJWT[target] = undefined;
+            await queryMicroservice(target, res);
+            return;
+        }
+        res.status(500).send("Error: " + e.response.data);
     }
 }
 
@@ -76,11 +82,11 @@ app.get('/hello', (req: Request, res: Response) => {
     // other micro services will query this. So we auth them.
     let jwt = req.headers.authorization?.split(' ')[1];
     if (jwt === undefined) {
-        return res.status(401).send("Unauthorized");
+        return res.status(401).send("Unauthorized: Missing access token in request");
     }
     JsonWebToken.verify(jwt, getKey, {}, async function (err, decoded) {
         if (err) {
-            return res.status(401).send("Unauthorized");
+            return res.status(401).send(err.message);
         }
         let decodedJWT = decoded;
         if (decodedJWT === undefined || typeof decodedJWT === "string") {

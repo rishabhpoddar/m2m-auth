@@ -78,7 +78,7 @@ app.post('/accesstoken', (req: Request, res: Response) => {
             iss: "auth-server",
             sub,
             aud: targetMicroservice
-        });
+        }, 3600); // lifetime of this JWT is 1 hour
         if (accessToken.status !== "OK") {
             return res.status(500).send("Internal error");
         }
